@@ -1,0 +1,215 @@
+var JSONTree=function(root,respRoot,json){
+	this.ARRAY='array';this.OBJECT='object';this.LEAF='leaf';this.SAMPLE='sample';
+	//this.root=root;
+	this.respRoot=respRoot;
+	/*var container=document.createElement("div");this.container=container;
+	this.root.appendChild(this.container);*/
+	var respContainer=document.createElement("div");this.respContainer=respContainer;
+	this.respRoot.appendChild(this.respContainer);
+	var obj=null;
+	if(IsJsonString(json)){obj=JSON.parse(json);}
+	else if('object'==typeof(json)){obj=json;}
+	
+	if(obj){
+		var sample={};
+		sample=this.createSample(this,obj,sample,"");console.log("Sample is ",sample);
+		console.log(root,respRoot);
+		console.log("Creating tree");//this.addElements(this,obj,this.container,"",5);
+		console.log("Passing ",this.respContainer);
+		this.indent(this,obj,respContainer,"",5);
+	}
+}
+
+
+JSONTree.prototype.createSample=function(context,ObjectRoot,sample,name){
+	console.log("Sample start",sample);
+	if( isArray(ObjectRoot) ) {
+		var map={};
+		var childType="";
+		if(ObjectRoot[0]){
+			console.log("Condition",('object'==typeof(ObjectRoot[0])||isArray(ObjectRoot[0])));
+			if(!('object'==typeof(ObjectRoot[0])||isArray(ObjectRoot[0]))){childType=typeof(ObjectRoot[0]);}
+		}
+		if(!sample[name]){sample[name]=[];}
+		var smpl=sample[name];
+		
+		console.log("ObjectRoot[0]",ObjectRoot[0],childType);
+		if(ObjectRoot[0]&&""==childType){
+			console.log("Looping through each element");
+			ObjectRoot.forEach(function(item){
+				for(var key in item){
+					if(!sample[name][key]){
+						sample[name][key]=item[key];
+					}else{
+						sample[name]=context.createSample(context,item[key],sample[name],key);
+					}
+					console.log(" Array item "+key+": "+typeof(item[key]),this,item[key],sample[name],key);
+				}	
+			});
+		}else{
+			console.log("In else");
+			sample[name]=sample[name].concat(ObjectRoot);
+		}
+		console.log("Map is ",map);
+	}else if('object'==typeof(ObjectRoot)){
+		if(!sample[name]){sample[name]={};}
+		for(var item in ObjectRoot){
+			sample[name]=context.createSample(context,ObjectRoot[item],sample[name],item);
+		}
+	}else{
+		sample[name]=ObjectRoot;
+	}
+	console.log("Sample end",sample);
+	return sample;
+}
+JSONTree.prototype.indent=function(context,ObjectRoot, respContainer, name, level){
+	console.log("indent ObjectRoot ", ObjectRoot,"respContainer",respContainer);
+	console.log("Typeof ObjectRoot "+typeof(ObjectRoot));
+	var element=null;
+	if( isArray(ObjectRoot) ) {
+		var map={};
+		var childType="";
+		if(ObjectRoot[0]){
+			console.log("Condition",('object'==typeof(ObjectRoot[0])||isArray(ObjectRoot[0])));
+			if(!('object'==typeof(ObjectRoot[0])||isArray(ObjectRoot[0]))){childType=typeof(ObjectRoot[0]);}
+		}
+		element=context.createElement(context,this.ARRAY,name,level,null,childType);
+		respContainer.appendChild(element);
+		console.log("ObjectRoot[0]",ObjectRoot[0],childType);
+		if(ObjectRoot[0]&&""==childType){
+			console.log("Looping through each element");
+			ObjectRoot.forEach(function(item){
+				for(var key in item){
+					context.indent(context,item[key],element.getElementsByTagName("div")[0],key,level+1);
+				}	
+			});
+		}else{
+			//console.log("In else");
+			element.getElementsByTagName("div")[0].appendChild(context.createElement(context,this.SAMPLE,null,level+1,ObjectRoot));
+		}
+		//console.log("Map is ",map);
+	}else if('object'==typeof(ObjectRoot)){
+		element=context.createElement(context,this.OBJECT,name,level);
+		respContainer.appendChild(element);
+		for(var item in ObjectRoot){
+			//console.log("item "+item+": "+typeof(ObjectRoot[item]));
+			context.indent(this,ObjectRoot[item],element.getElementsByTagName("div")[0],item,level+1);
+		}
+	}else{
+		element=context.createElement(context,this.LEAF,name,level,ObjectRoot,typeof(ObjectRoot));
+		respContainer.appendChild(element);
+	}
+}
+
+JSONTree.prototype.addElements=function(context,ObjectRoot, parent, name, level){
+	console.log("ObjectRoot ", ObjectRoot,"Parent",parent);
+	console.log("Typeof ObjectRoot "+typeof(ObjectRoot));
+	var element=null;
+	if( isArray(ObjectRoot) ) {
+		var map={};
+		var childType="";
+		if(ObjectRoot[0]){
+			console.log("Condition",('object'==typeof(ObjectRoot[0])||isArray(ObjectRoot[0])));
+			if(!('object'==typeof(ObjectRoot[0])||isArray(ObjectRoot[0]))){childType=typeof(ObjectRoot[0]);}
+		}
+		element=context.createElement(context,this.ARRAY,name,level,null,childType);
+		parent.appendChild(element);
+		console.log("ObjectRoot[0]",ObjectRoot[0],childType);
+		if(ObjectRoot[0]&&""==childType){
+			console.log("Looping through each element");
+			ObjectRoot.forEach(function(item){
+				for(var key in item){
+					if(!map[key]){
+						map[key]=typeof(item[key]);
+						console.log(" Array item "+key+": "+typeof(item[key]),this,item[key],element,key,level+1);
+						context.addElements(context,item[key],element.getElementsByTagName("div")[0],key,level+1);
+					}
+				}	
+			});
+		}else{
+			console.log("In else");
+			element.getElementsByTagName("div")[0].appendChild(context.createElement(context,this.SAMPLE,null,level+1,ObjectRoot));
+		}
+		console.log("Map is ",map);
+	}else if('object'==typeof(ObjectRoot)){
+		element=context.createElement(context,this.OBJECT,name,level);
+		parent.appendChild(element);
+		for(var item in ObjectRoot){
+			console.log("item "+item+": "+typeof(ObjectRoot[item]));
+			context.addElements(this,ObjectRoot[item],element.getElementsByTagName("div")[0],item,level+1);
+		}
+	}else{
+		element=context.createElement(context,this.LEAF,name,level,ObjectRoot,typeof(ObjectRoot));
+		parent.appendChild(element);
+	}
+}
+JSONTree.prototype.createElement=function(context,type,name,level,value,datatype){
+	var element=null;
+	switch(type){
+		case this.ARRAY:
+		element=document.createElement("div");element.style.paddingLeft=level*2+"px";
+		var container=document.createElement("div");container.className="treeElementHolder";
+		var labelHolder=document.createElement("div");labelHolder.className="labelHolder";
+		var icon=document.createElement("img");icon.src="images/collapse.png";icon.className="iconExpand";
+		icon.onclick=this.clickCallback.bind(this);labelHolder.appendChild(icon);
+		var label=document.createElement("label");label.innerHTML=name+" ["+(""==datatype?" ":datatype)+"]";label.className="elementLabel";
+		labelHolder.appendChild(label);container.appendChild(labelHolder);
+		element.appendChild(container);
+		break;
+		case this.OBJECT:
+		element=document.createElement("div");element.style.paddingLeft=level*2+"px";
+		var container=document.createElement("div");container.className="treeElementHolder";
+		var labelHolder=document.createElement("div");labelHolder.className="labelHolder";
+		var icon=document.createElement("img");icon.src="images/collapse.png";icon.className="iconExpand";
+		icon.onclick=this.clickCallback.bind(this);labelHolder.appendChild(icon);
+		var label=document.createElement("label");label.innerHTML=name+" { }";label.className="elementLabel";
+		labelHolder.appendChild(label);container.appendChild(labelHolder);
+		element.appendChild(container);
+		break;
+		case this.LEAF:
+		element=document.createElement("div");element.style.paddingLeft=(level*2+2)+"px";
+		var labelHolder=document.createElement("div");labelHolder.className="labelHolder";
+		var label=document.createElement("label");label.innerHTML=name +" ("+datatype+") ";label.className="elementLabel";
+		labelHolder.appendChild(label);element.appendChild(labelHolder);element.title="example value: "+value;
+		break;
+		case this.SAMPLE:
+		element=document.createElement("div");element.style.paddingLeft=(level*2+2)+"px";
+		var labelHolder=document.createElement("div");labelHolder.className="exampleHolder";
+		var label=document.createElement("label");/*label.innerHTML=name +" ("+datatype+") ";*/label.className="elementLabel";
+		var innerHTML="";value.forEach(function(val){innerHTML+=((innerHTML?", ":"")+val);});label.innerHTML="e.g. "+innerHTML;
+		labelHolder.appendChild(label);element.appendChild(labelHolder);element.title="example value: "+value;
+		break;
+	}
+	return element;
+}
+JSONTree.prototype.clickCallback=function(event){
+	console.log("Click ",event,'img'==event.target.tagName.toLowerCase());
+	if('img'==event.target.tagName.toLowerCase()){
+		console.log("className is "+event.target.className,'iconCollapse'==event.target.className);
+		if('iconCollapse'==event.target.className){this.expand(event.target);}
+		else{this.collapse(event.target);}
+	}
+}
+JSONTree.prototype.collapse=function(image){
+	var siblingDivs=Array.from(image.parentNode.parentNode.childNodes).filter(function(node){return image.parentNode!=node&&'div'.toLowerCase()==node.tagName.toLowerCase();}).
+		forEach(function(div){div.className='hide';});
+		image.className='iconCollapse';
+	console.log("Changed classname to iconCollapse");
+}
+JSONTree.prototype.collapseAll=function(){
+	this.clickButtonsWithClass("iconExpand");
+}
+JSONTree.prototype.clickButtonsWithClass=function(className){
+	var x = Array.from(document.getElementsByClassName(className));
+	x.forEach(function(button){button.click();})
+}
+JSONTree.prototype.expand=function(image){
+	var siblingDivs=Array.from(image.parentNode.parentNode.childNodes).filter(function(node){return image.parentNode!=node&&'div'.toLowerCase()==node.tagName.toLowerCase();}).
+		forEach(function(div){div.className='';});
+	image.className='iconExpand';
+	console.log("Changed classname to iconExpand");
+}
+JSONTree.prototype.expandAll=function(){
+	this.clickButtonsWithClass("iconCollapse");
+}
+
